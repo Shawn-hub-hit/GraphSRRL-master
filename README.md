@@ -16,7 +16,7 @@ You can download the CIKMCup 2016 Track 2 Dataset from https://competitions.coda
 ## Example to Run
 * Make sure the raw data, meta data are in the same direction ./Data/CIKMCup_raw/.
 * Preprocessing data. 
-
+   '''
    python utils/1_process.py
    ```
 
