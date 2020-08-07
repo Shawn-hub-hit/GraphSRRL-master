@@ -52,7 +52,7 @@ def normalize(embeddings):
     embeddings.weight.data = F.normalize(embeddings.weight.data, p=2, dim=1)
 
 
-class KGPSModel(nn.Module):
+class GraphSRRLModel(nn.Module):
     def __init__(self, model_name, nuser, nitem, nquery, hidden_dim, dataset, device):
         super(KGPSModel, self).__init__()
         self.model_name = model_name
