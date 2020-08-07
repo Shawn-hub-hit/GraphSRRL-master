@@ -2,7 +2,7 @@
 
 A pytorch implementation of GraphLQR.
 
-Shang Liu, Wanli Gu, Gao Cong, Fuzheng Zhang. Logical Structure Representation Learning with Graph Embedding for Personalized Product Search. In CIKM 2020
+Shang Liu, Wanli Gu, Gao Cong, Fuzheng Zhang. Structural Relationship Representation Learning with Graph Embedding for Personalized Product Search. In CIKM 2020
 
 **Please cite our CIKM paper if you use our codes. Thanks!**
 
