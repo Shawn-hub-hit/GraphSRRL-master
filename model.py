@@ -54,7 +54,7 @@ def normalize(embeddings):
 
 class GraphSRRLModel(nn.Module):
     def __init__(self, model_name, nuser, nitem, nquery, hidden_dim, dataset, device):
-        super(KGPSModel, self).__init__()
+        super(GraphSRRLModel, self).__init__()
         self.model_name = model_name
         self.nuser = nuser
         self.nitem = nitem

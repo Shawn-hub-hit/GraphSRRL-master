@@ -18,7 +18,7 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import torch.nn as nn
 
-from model import KGPSModel
+from model import GraphSRRLModel
 
 from GENPSDataset import GENPSDataset
 from dataloader import TrainDatasetKG
@@ -138,7 +138,7 @@ def main(args):
             # all_true_triples = train_triples + valid_triples + test_triples
             all_true_triples = train_triples + test_triples
             device = torch.device(args.device)
-            KGPS_model = KGPSModel(
+            GraphSRRL_model = GraphSRRLModel(
                 model_name=args.model,
                 nuser=nuser,
                 nitem=nitem,
@@ -149,14 +149,14 @@ def main(args):
             )
 
             logging.info('Model Parameter Configuration:')
-            for name, param in KGPS_model.named_parameters():
+            for name, param in GraphSRRL_model.named_parameters():
                 logging.info(
                     'Parameter %s: %s, require_grad = %s' % (name, str(param.size()), str(param.requires_grad)))
 
-            KGPS_model.to(device)
-            init_network(KGPS_model)
-            train(KGPS_model, args, train_triples, nuser, nitem, nquery, device)
-            metric = test(KGPS_model, test_triples, all_true_triples, args, True)
+            GraphSRRL_model.to(device)
+            init_network(GraphSRRL_model)
+            train(GraphSRRL_model, args, train_triples, nuser, nitem, nquery, device)
+            metric = test(GraphSRRL_model, test_triples, all_true_triples, args, True)
             metrics_list.append(metric)
 
         with open(args.save_path+'/results_meric.txt', 'a+') as f:
@@ -206,13 +206,13 @@ def get_data_load(args, train_triples, nuser, nitem, nquery, device):
 
     return train_iterator_KG, train_dataloader_PS
 
-def train(KGPS_model, args, train_triples, nuser, nitem, nquery, device, init_model=False):
+def train(GraphSRRL_model, args, train_triples, nuser, nitem, nquery, device, init_model=False):
 
     train_iterator_KG, train_dataloader_PS = get_data_load(args, train_triples, nuser, nitem, nquery, device)
     # Set training configuration
     current_learning_rate = args.learning_rate
     optimizer = torch.optim.Adam(
-        filter(lambda p: p.requires_grad, KGPS_model.parameters()),
+        filter(lambda p: p.requires_grad, GraphSRRL_model.parameters()),
         lr=current_learning_rate
     )
     criterion = nn.BCEWithLogitsLoss()
@@ -223,7 +223,7 @@ def train(KGPS_model, args, train_triples, nuser, nitem, nquery, device, init_mo
         logging.info('Loading checkpoint %s...' % args.init_checkpoint)
         checkpoint = torch.load(args.init_checkpoint)
         init_epoch = checkpoint['epoch']
-        KGPS_model.load_state_dict(checkpoint['state_dict'])
+        GraphSRRL_model.load_state_dict(checkpoint['state_dict'])
 
         current_learning_rate.load_state_dict(checkpoint['current_learning_rate'])
         optimizer.load_state_dict(checkpoint['optimizer'])
@@ -245,16 +245,16 @@ def train(KGPS_model, args, train_triples, nuser, nitem, nquery, device, init_mo
     for e in range(init_epoch, args.epoch):
 
         # KG training
-        trainForKG(KGPS_model, optimizer, train_iterator_KG, args, steps, e)
+        trainForKG(GraphSRRL_model, optimizer, train_iterator_KG, args, steps, e)
 
         # PS training
-        trainForPS(KGPS_model, optimizer, train_dataloader_PS, args, criterion, e)
+        trainForPS(GraphSRRL_model, optimizer, train_dataloader_PS, args, criterion, e)
 
         current_learning_rate = current_learning_rate / args.weight_decay
         if e > warm_up_epoch:
             current_learning_rate = 0.001
             logging.info('current_learning_rate = %f' % current_learning_rate)
-            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, KGPS_model.parameters()),
+            optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, GraphSRRL_model.parameters()),
                                          lr=current_learning_rate)
             warm_up_epoch = warm_up_epoch + 3
             train_iterator_KG, train_dataloader_PS = get_data_load(args, train_triples, nuser, nitem, nquery, device)
@@ -262,7 +262,7 @@ def train(KGPS_model, args, train_triples, nuser, nitem, nquery, device, init_mo
         # store best loss and save a model checkpoint
         ckpt_dict = {
             'epoch': e + 1,
-            'state_dict': KGPS_model.state_dict(),
+            'state_dict': GraphSRRL_model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'current_learning_rate': current_learning_rate
         }
@@ -270,7 +270,7 @@ def train(KGPS_model, args, train_triples, nuser, nitem, nquery, device, init_mo
         torch.save(ckpt_dict, os.path.join(args.save_path, 'checkpoint_latest_%d_%s_%s'% (args.hidden_dim, args.dataset, args.input_dir.split('_')[-1])))
 
 
-def test(KGPS_model, test_triples, all_true_triples, args, init_model=True):
+def test(GraphSRRL_model, test_triples, all_true_triples, args, init_model=True):
 
     if init_model:
         # Restore model from checkpoint directory
@@ -278,13 +278,13 @@ def test(KGPS_model, test_triples, all_true_triples, args, init_model=True):
         logging.info('Loading checkpoint %s...' % path_init)
         checkpoint = torch.load(path_init)
         init_epoch = checkpoint['epoch']
-        KGPS_model.load_state_dict(checkpoint['state_dict'])
+        GraphSRRL_model.load_state_dict(checkpoint['state_dict'])
     else:
         logging.info('Ramdomly Initializing %s Model...' % args.model)
         init_epoch = 0
 
     logging.info('Evaluating on Valid Dataset...')
-    metrics = testforPS(KGPS_model, test_triples, all_true_triples, args)
+    metrics = testforPS(GraphSRRL_model, test_triples, all_true_triples, args)
     log_metrics('Valid', init_epoch, metrics)
     return metrics
 
@@ -304,8 +304,8 @@ def init_network(model, method='xavier', exclude='embedding', seed=123):
             else:
                 pass
 
-def trainForPS(KGPS_model, optimizer, train_dataloader_PS, args, criterion, epoch):
-    KGPS_model.train()
+def trainForPS(GraphSRRL_model, optimizer, train_dataloader_PS, args, criterion, epoch):
+    GraphSRRL_model.train()
     sum_epoch_loss = 0
     start = time.time()
 
@@ -318,15 +318,15 @@ def trainForPS(KGPS_model, optimizer, train_dataloader_PS, args, criterion, epoc
         labels = labels.to(torch.device(args.device))
 
         optimizer.zero_grad()
-        score_normalized = KGPS_model(uids, queries, items)
+        score_normalized = GraphSRRL_model(uids, queries, items)
 
         loss = criterion(score_normalized.float(), labels.float())
         if args.regularization != 0.0:
             # Use L2 regularization for ComplEx and DistMult
             regulariza= args.regularization * (
-                    KGPS_model.user_embedding_PS.weight.data.norm(p=2) ** 2 +
-                    KGPS_model.word_embedding.weight.data.norm(p=2) ** 2 +
-                    KGPS_model.item_embedding_PS.weight.data.norm(p=2) ** 2
+                    GraphSRRL_model.user_embedding_PS.weight.data.norm(p=2) ** 2 +
+                    GraphSRRL_model.word_embedding.weight.data.norm(p=2) ** 2 +
+                    GraphSRRL_model.item_embedding_PS.weight.data.norm(p=2) ** 2
             )
             loss = loss + args.regularization*regulariza
             regularization_log = {'regularization': regulariza.item()}
@@ -347,8 +347,8 @@ def trainForPS(KGPS_model, optimizer, train_dataloader_PS, args, criterion, epoc
         start = time.time()
 
 
-def trainForKG(KGPS_model, optimizer, train_iterator_KG, args, steps, epoch):
-    KGPS_model.train()
+def trainForKG(GraphSRRL_model, optimizer, train_iterator_KG, args, steps, epoch):
+    GraphSRRL_model.train()
     start = time.time()
     optimizer.zero_grad()
     sum_step_loss = 0
@@ -363,13 +363,13 @@ def trainForKG(KGPS_model, optimizer, train_iterator_KG, args, steps, epoch):
         true_query_company = true_query_company.to(torch.device(args.device))
 
         optimizer.zero_grad()
-        negative_score = KGPS_model.trainkg(
+        negative_score = GraphSRRL_model.trainkg(
             (positive_sample, negative_sample, true_tail_company, true_head_company, true_query_company), mode, False)
 
 
         negative_score = F.logsigmoid(-negative_score).mean(dim=1)
 
-        positive_score = KGPS_model.trainkg((positive_sample, true_tail_company, true_head_company, true_query_company), mode, True)
+        positive_score = GraphSRRL_model.trainkg((positive_sample, true_tail_company, true_head_company, true_query_company), mode, True)
 
         positive_score = F.logsigmoid(positive_score).squeeze(dim=1)
 
@@ -385,9 +385,9 @@ def trainForKG(KGPS_model, optimizer, train_iterator_KG, args, steps, epoch):
         if args.regularization != 0.0:
             # Use L2 regularization
             regulariza = args.regularization * (
-                    KGPS_model.user_embedding_KG.weight.data.norm(p=2) ** 2 +
-                    KGPS_model.word_embedding.weight.data.norm(p=2) ** 2 +
-                    KGPS_model.item_embedding_KG.weight.data.norm(p=2) ** 2
+                    GraphSRRL_model.user_embedding_KG.weight.data.norm(p=2) ** 2 +
+                    GraphSRRL_model.word_embedding.weight.data.norm(p=2) ** 2 +
+                    GraphSRRL_model.item_embedding_KG.weight.data.norm(p=2) ** 2
             )
             loss = loss + args.regularization*regulariza
             regularization_log = {'regularization': regulariza.item()}
