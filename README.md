@@ -1,6 +1,6 @@
-# GraphLQR
+# GraphSRRL
 
-A pytorch implementation of GraphLQR.
+A pytorch implementation of GraphSRRL.
 
 Shang Liu, Wanli Gu, Gao Cong, Fuzheng Zhang. Structural Relationship Representation Learning with Graph Embedding for Personalized Product Search. In CIKM 2020
 
