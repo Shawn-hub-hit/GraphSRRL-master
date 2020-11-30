@@ -147,9 +147,28 @@ print(df_items_attributes.shape, df_records.shape)
 
 #print(df_items_attributes.head(10), df_records.head())
 
-
 df_items_attributes.to_csv(datapath+amazon_term+'.attributes', header=True, index=False, encoding='utf-8', sep=';')
 df_records.to_csv(datapath+amazon_term+'.records', header=True, index=False, encoding='utf-8', sep=';')
+
+# output the queries
+df_i_q = df_items_attributes[['itemId', 'searchstring']]
+#print(df_i_q.head(1))
+df_records = pd.merge(df_records, df_i_q, on='itemId')
+
+query_string_list = df_items_attributes['searchstring'].unique().tolist()
+
+query_map = dict([(query_string_list[i], i) for i in range(len(query_string_list))])
+
+def mapfun(x):
+    return query_map[x]
+
+querykey = df_records['searchstring'].apply(mapfun)
+df_records['queryId'] = querykey
+df_records = df_records[['userId', 'queryId', 'itemId', 'eventdate', 'interactionText', 'summary']]
+df_items_attributes = df_items_attributes[['itemId', 'des', 'categories', 'also_viewed']]
+with open(datapath+amazon_term+'.queries', 'w') as fout:
+    for string, key in query_map.items():
+        fout.write(str(key) + ';' + str(string) + '\n')
 
 
 import numpy as np
