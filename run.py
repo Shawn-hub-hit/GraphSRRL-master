@@ -41,7 +41,7 @@ def parse_args(args=None):
     parser.add_argument('--input_dir', type=str, default='./Data/CIKMCup_raw/seq_query_split')
     parser.add_argument('--model', default='inner_product', type=str, help='inner_product')
 
-    parser.add_argument('-n', '--negative_sample_size', default=10, type=int)
+    parser.add_argument('-n', '--negative_sample_size', default=32, type=int)
     parser.add_argument('-d', '--hidden_dim', default=50, type=int)
     parser.add_argument('-b', '--batch_size', default=32, type=int)
     parser.add_argument('-r', '--regularization', default=0.00001, type=float)
@@ -51,7 +51,7 @@ def parse_args(args=None):
 
     parser.add_argument('-init', '--init_checkpoint', default='./models', type=str)
     parser.add_argument('-lr', '--learning_rate', default=0.001, type=float)
-    parser.add_argument('--weight_decay', type=float, default=2, help='Weight decay.')
+    parser.add_argument('--weight_decay', type=float, default=5, help='Weight decay.')
     parser.add_argument('-cpu', '--cpu_num', default=10, type=int)
     parser.add_argument('-save', '--save_path', default='models', type=str)
 
